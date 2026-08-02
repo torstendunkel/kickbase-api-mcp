@@ -77,6 +77,154 @@ and [Swagger Hub](https://app.swaggerhub.com/)
 
 6. Now you can try out any endpoint with your path and query params
 
+### MCP Server (Claude / AI Assistants)
+
+The `mcp-server/` directory contains a ready-to-run MCP server that exposes 33 Kickbase tools to any MCP-compatible AI client (Claude Code, Claude Desktop, etc.).
+
+#### Setup
+
+```bash
+cd mcp-server
+npm install
+npm run build
+```
+
+#### Claude Code / Claude Desktop configuration
+
+Add the following to your `~/.claude.json` (Claude Code) or `claude_desktop_config.json` (Claude Desktop):
+
+```json
+{
+  "mcpServers": {
+    "kickbase": {
+      "command": "node",
+      "args": ["/absolute/path/to/kickbase-api-doc/mcp-server/dist/index.js"],
+      "env": {
+        "KICKBASE_EMAIL": "your@email.com",
+        "KICKBASE_PASSWORD": "yourpassword"
+      }
+    }
+  }
+}
+```
+
+The server authenticates automatically on first use and caches the token in memory. You can also skip the login flow by providing a pre-obtained token directly:
+
+```json
+"env": {
+  "KICKBASE_TOKEN": "eyJhbGci..."
+}
+```
+
+#### Environment variables
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `KICKBASE_EMAIL` / `KICKBASE_PASSWORD` | — | Credentials for automatic login |
+| `KICKBASE_TOKEN` | — | Pre-obtained bearer token; skips the login flow |
+| `KICKBASE_CACHE_TTL` | `300` | Cache lifetime in seconds for slow-moving reference data. `0` disables caching |
+| `KICKBASE_KEEP_IMAGES` | unset | Set to `1` to keep image-path fields in responses (see below) |
+
+#### Token & request efficiency
+
+Kickbase responses are verbose, and an AI client pays for every byte. The server
+applies three optimisations, measured across a representative set of endpoints:
+
+| Optimisation | Effect |
+|---|---|
+| Compact JSON output | −38% payload (indentation buys the consuming model nothing) |
+| Image-path stripping | −26% more; fields like `pim`, `uim`, `t1im`, `plpim` are unusable to an AI client and make up ~50% of `/matchdays` |
+| **Combined** | **−64% tokens** (≈50k → ≈18k tokens over the sampled endpoints) |
+
+Set `KICKBASE_KEEP_IMAGES=1` if you actually need the image paths — e.g. when
+building a UI on top of the server. Values are dropped by shape rather than by a
+fixed key list, so image fields added by future API versions are covered too.
+
+Request count is reduced by two mechanisms:
+
+- **Response cache** — only slow-moving reference data is cached
+  (`/competitions`, `/matchdays`, `/table`, competition players, `/base/stage`).
+  Budgets, market, lineup and other volatile endpoints are **never** cached, and
+  any `POST`/`DELETE` flushes the cache, so a write is always followed by fresh
+  reads.
+- **Request coalescing** — identical GETs issued before the first one resolves
+  share a single HTTP request instead of racing.
+
+Additionally, `kickbase_get_matchdays` accepts a `day` parameter
+(`'5'` or `'current'`). It is the largest response of any tool — filtering to a
+single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
+
+#### Available tools
+
+| Tool | Description |
+|---|---|
+| `kickbase_get_profile` | Your account profile |
+| `kickbase_list_leagues` | All your leagues |
+| `kickbase_get_league_overview` | League details |
+| `kickbase_get_league_ranking` | Manager standings |
+| `kickbase_get_my_squad` | Your owned players |
+| `kickbase_get_my_budget` | Remaining budget |
+| `kickbase_get_my_league_info` | Your stats in a league |
+| `kickbase_get_activities_feed` | Transfer & event feed |
+| `kickbase_get_lineup` | Current lineup |
+| `kickbase_get_lineup_overview` | Lineup with live points |
+| `kickbase_get_lineup_selection` | Available players for lineup |
+| `kickbase_fill_lineup` | Set formation & lineup |
+| `kickbase_get_market` | Transfer market (incl. inline `ofs[]` offers, see notes) |
+| `kickbase_sell_player` | List a player for sale |
+| `kickbase_remove_from_market` | Delist a player |
+| `kickbase_list_player_offers` | Open offers + market status for a single player (see notes) |
+| `kickbase_place_offer` | Bid on a player |
+| `kickbase_accept_offer` | Accept an incoming offer |
+| `kickbase_decline_offer` | Decline an incoming offer |
+| `kickbase_get_league_player` | Player details (league ctx) |
+| `kickbase_get_player_market_value` | Market value history |
+| `kickbase_get_player_performance` | Player match points |
+| `kickbase_get_player_transfer_history` | Player transfer log |
+| `kickbase_get_manager_squad` | Another manager's squad |
+| `kickbase_get_manager_performance` | Manager point history |
+| `kickbase_list_competitions` | Available competitions |
+| `kickbase_search_players` | Search players by name |
+| `kickbase_get_competition_players` | All players in a competition |
+| `kickbase_get_competition_player` | Single player details |
+| `kickbase_get_competition_table` | Football league table |
+| `kickbase_get_matchdays` | Matchday schedule (supports `day` filter, see notes) |
+| `kickbase_get_base_overview` | Live match overview |
+| `kickbase_get_stage` | Current matchday/stage info |
+
+#### Notes & API quirks
+
+**Offers are only partially visible.** Kickbase removed the ability to see other
+managers' bids on players you don't own. `kickbase_list_player_offers` therefore
+returns a populated `ofs[]` array only for:
+
+- your own bids on someone else's listing, and
+- bids other managers placed on *your* listed player.
+
+An empty `ofs[]` is the normal case, not an error.
+
+**There is no GET endpoint for market offers.**
+`/v4/leagues/{id}/market/{playerId}/offers` exists as `POST` only (placing a
+bid); a `GET` returns `405 Method Not Allowed`. `kickbase_list_player_offers`
+therefore reads from `GET /v4/leagues/{id}/players/{playerId}/transfers`, which
+returns `ofs[]` plus market context (`iotm`, `iposl`, `mv`, `prc`). Do not
+confuse this with `/transferHistory` (mapped as
+`kickbase_get_player_transfer_history`), which returns *completed* transactions
+rather than open bids.
+
+**`offerId` is the bidder's user ID.** In observed responses, the `uoid` of an
+offer is identical to the bidding user's ID (`u`). Pass that value as `offerId`
+to `kickbase_accept_offer` / `kickbase_decline_offer`.
+
+**`kickbase_get_market` already includes offers inline.** Each market entry
+carries `ofc` (offer count) and, when bids exist, the full `ofs[]` array —
+including `unm` (bidder name), which the single-player endpoint omits. Prefer
+`kickbase_get_market` when scanning the whole market; use
+`kickbase_list_player_offers` for a targeted single-player check or for a player
+who is not currently listed.
+
+---
+
 ### Local
 
 #### Postman
