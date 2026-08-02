@@ -19,7 +19,7 @@ async function authHeaders(): Promise<Record<string, string>> {
 const IMAGE_VALUE =
   /^(content\/file\/|user\/|https?:\/\/)?[\w./-]+\.(png|jpe?g|jpe|svg|webp|gif)$/i;
 
-function stripImages(value: unknown): unknown {
+export function stripImages(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stripImages);
 
   if (value && typeof value === 'object') {
@@ -67,7 +67,7 @@ const cache = new Map<string, { value: unknown; expiresAt: number }>();
 // Identical GETs issued before the first one resolves share a single request
 const inFlight = new Map<string, Promise<unknown>>();
 
-function isCacheable(path: string): boolean {
+export function isCacheable(path: string): boolean {
   return cacheTtlMs() > 0 && CACHEABLE.some((re) => re.test(path));
 }
 

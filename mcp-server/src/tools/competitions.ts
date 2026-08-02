@@ -11,6 +11,15 @@ interface MatchdaysResponse {
   day?: number;
 }
 
+export function selectMatchday<T extends MatchdaysResponse>(data: T, day: string | undefined): T {
+  if (day === undefined || day === '' || !Array.isArray(data.it)) return data;
+
+  const wanted = day === 'current' ? data.day : Number(day);
+  if (wanted === undefined || Number.isNaN(wanted)) return data;
+
+  return { ...data, it: data.it.filter((entry) => entry.day === wanted) };
+}
+
 export function registerCompetitionTools(server: McpServer): void {
   registerApiTool(
     server,
@@ -101,13 +110,7 @@ export function registerCompetitionTools(server: McpServer): void {
     },
     async ({ competitionId, day }) => {
       const data = (await apiGet(`/v4/competitions/${competitionId}/matchdays`)) as MatchdaysResponse;
-
-      if (day === undefined || day === '' || !Array.isArray(data.it)) return data;
-
-      const wanted = day === 'current' ? data.day : Number(day);
-      if (wanted === undefined || Number.isNaN(wanted)) return data;
-
-      return { ...data, it: data.it.filter((entry) => entry.day === wanted) };
+      return selectMatchday(data, day);
     }
   );
 }

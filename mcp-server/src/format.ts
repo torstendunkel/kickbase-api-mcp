@@ -11,7 +11,7 @@ import type { CallToolResult, ToolAnnotations } from '@modelcontextprotocol/sdk/
 // with headroom; keeps a single runaway response from blowing up the context.
 export const CHARACTER_LIMIT = 25_000;
 
-function toContent(result: unknown): CallToolResult {
+export function toContent(result: unknown): CallToolResult {
   let text = JSON.stringify(result);
   if (text.length > CHARACTER_LIMIT) {
     const omitted = text.length - CHARACTER_LIMIT;
@@ -23,7 +23,7 @@ function toContent(result: unknown): CallToolResult {
   return { content: [{ type: 'text', text }] };
 }
 
-function toError(err: unknown): CallToolResult {
+export function toError(err: unknown): CallToolResult {
   const message = err instanceof Error ? err.message : String(err);
   return { content: [{ type: 'text', text: `Error: ${message}` }], isError: true };
 }
