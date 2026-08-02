@@ -89,9 +89,26 @@ npm install
 npm run build
 ```
 
-#### Claude Code / Claude Desktop configuration
+#### Claude Code (CLI)
 
-Add the following to your `~/.claude.json` (Claude Code) or `claude_desktop_config.json` (Claude Desktop):
+Register the server with the `claude mcp add` command instead of hand-editing config files:
+
+```bash
+claude mcp add kickbase \
+  -e KICKBASE_EMAIL=your@email.com \
+  -e KICKBASE_PASSWORD=yourpassword \
+  -- node /absolute/path/to/kickbase-api-doc/mcp-server/dist/index.js
+```
+
+- Use an absolute path to `dist/index.js` (the build output from the setup step above).
+- Add `-s user` to make the server available in every project instead of just the current one, or `-s project` to share it via `.mcp.json` checked into this repo.
+- Verify it's connected with `claude mcp list`, and inspect its tools from inside a session with `/mcp`.
+- Remove it again with `claude mcp remove kickbase`.
+
+#### Claude Desktop
+
+Claude Desktop reads its server list from a config file instead of a CLI. Open it via
+**Settings → Developer → Edit Config** (or edit `claude_desktop_config.json` directly) and add:
 
 ```json
 {
@@ -108,12 +125,14 @@ Add the following to your `~/.claude.json` (Claude Code) or `claude_desktop_conf
 }
 ```
 
-The server authenticates automatically on first use and caches the token in memory. You can also skip the login flow by providing a pre-obtained token directly:
+Restart Claude Desktop afterwards for the server to be picked up.
 
-```json
-"env": {
-  "KICKBASE_TOKEN": "eyJhbGci..."
-}
+#### Authentication
+
+The server authenticates automatically on first use and caches the token in memory. You can also skip the login flow by providing a pre-obtained token directly instead of email/password:
+
+```bash
+claude mcp add kickbase -e KICKBASE_TOKEN=eyJhbGci... -- node /absolute/path/to/kickbase-api-doc/mcp-server/dist/index.js
 ```
 
 #### Environment variables
