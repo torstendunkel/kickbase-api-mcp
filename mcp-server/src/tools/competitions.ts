@@ -29,7 +29,11 @@ export function registerCompetitionTools(server: McpServer): void {
     'kickbase_search_players',
     {
       title: 'Search Players',
-      description: 'Search for players by name within a competition.',
+      description:
+        'Search for players by name within a single competition. Both competitionId and query ' +
+        'are required — this endpoint is always scoped to one competition, there is no ' +
+        "cross-competition search. If you don't know the competition ID, call " +
+        "kickbase_list_competitions first (Bundesliga is typically '1').",
       inputSchema: { competitionId, query: z.string().min(1).describe('Player name search query') },
       annotations: READ_ONLY,
     },
