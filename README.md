@@ -211,6 +211,32 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_get_base_overview` | Live match overview |
 | `kickbase_get_stage` | Current matchday/stage info |
 
+#### Architecture
+
+Built with the MCP TypeScript SDK's modern `McpServer` / `registerTool` API (not
+the older `Server` + manual request-handler pattern). Each tool's input is
+validated at runtime with a Zod schema and annotated with `readOnlyHint` /
+`destructiveHint` / `idempotentHint` / `openWorldHint` so MCP clients can reason
+about side effects before calling it.
+
+```
+src/
+├── index.ts       # McpServer setup; wires up the tool modules below
+├── schemas.ts      # Shared Zod field schemas (leagueId, playerId, pagination, ...)
+├── format.ts       # registerApiTool() — shared error handling + response truncation
+├── auth.ts         # Login/token refresh
+├── client.ts       # HTTP client: caching, request coalescing, image stripping
+└── tools/          # One file per domain (leagues, market, players, ...),
+                     # each exporting a register*Tools(server) function
+```
+
+Tool outputs stay untyped JSON passed through from Kickbase rather than
+hand-maintained Zod `outputSchema`s — the API's fields are undocumented and
+single-letter-keyed, and can change without notice, so encoding a strict output
+shape would be brittle for little benefit. Responses over `CHARACTER_LIMIT`
+(25k characters, see `format.ts`) are truncated with a note pointing the caller
+at pagination or filter parameters.
+
 #### Notes & API quirks
 
 **Offers are only partially visible.** Kickbase removed the ability to see other
