@@ -8,6 +8,7 @@ import { registerLineupTools } from './tools/lineup.js';
 import { registerManagerTools } from './tools/managers.js';
 import { registerMarketTools } from './tools/market.js';
 import { registerPlayerTools } from './tools/players.js';
+import { registerScoutedPlayerTools } from './tools/scouted-players.js';
 import { registerUserTools } from './tools/user.js';
 
 const server = new McpServer({ name: 'kickbase-mcp-server', version: '1.0.0' });
@@ -17,6 +18,7 @@ registerLeagueTools(server);
 registerLineupTools(server);
 registerMarketTools(server);
 registerPlayerTools(server);
+registerScoutedPlayerTools(server);
 registerManagerTools(server);
 registerCompetitionTools(server);
 registerBaseTools(server);

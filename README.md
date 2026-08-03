@@ -79,7 +79,7 @@ and [Swagger Hub](https://app.swaggerhub.com/)
 
 ### MCP Server (Claude / AI Assistants)
 
-The `mcp-server/` directory contains a ready-to-run MCP server that exposes 33 Kickbase tools to any MCP-compatible AI client (Claude Code, Claude Desktop, etc.).
+The `mcp-server/` directory contains a ready-to-run MCP server that exposes 38 Kickbase tools to any MCP-compatible AI client (Claude Code, Claude Desktop, etc.).
 
 #### Setup
 
@@ -201,6 +201,10 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_get_player_market_value` | Market value history |
 | `kickbase_get_player_performance` | Player match points |
 | `kickbase_get_player_transfer_history` | Player transfer log |
+| `kickbase_get_scouted_players` | Your watchlist of scouted players |
+| `kickbase_add_scouted_player` | Add a player to your watchlist |
+| `kickbase_remove_scouted_player` | Remove one player from your watchlist |
+| `kickbase_clear_scouted_players` | Clear your entire watchlist |
 | `kickbase_get_manager_squad` | Another manager's squad |
 | `kickbase_get_manager_performance` | Manager point history |
 | `kickbase_list_competitions` | Available competitions |
