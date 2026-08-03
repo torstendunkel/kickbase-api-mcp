@@ -81,6 +81,33 @@ export function registerMarketTools(server: McpServer): void {
 
   registerApiTool(
     server,
+    'kickbase_withdraw_offer',
+    {
+      title: 'Withdraw Offer',
+      description:
+        "Withdraw/cancel a bid you placed on a player listed by another manager. This is the " +
+        "counterpart to kickbase_place_offer for the bidder's side — kickbase_decline_offer is " +
+        "for the seller rejecting someone else's bid on your own listing, not for cancelling " +
+        "your own outgoing bid. " +
+        "Note: 'offerId' has been observed to be identical to the bidding user's ID " +
+        "('u'/'uoid' in the offers list from kickbase_list_player_offers or kickbase_get_market) " +
+        "— for your own bid, that's your own user ID (see kickbase_get_profile).",
+      inputSchema: {
+        leagueId,
+        playerId: playerId.describe('Player ID the bid was placed on'),
+        offerId: z
+          .string()
+          .min(1)
+          .describe("Offer ID to withdraw (observed to equal the bidder's own user ID)"),
+      },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    },
+    ({ leagueId, playerId, offerId }) =>
+      apiDelete(`/v4/leagues/${leagueId}/market/${playerId}/offers/${offerId}`)
+  );
+
+  registerApiTool(
+    server,
     'kickbase_accept_offer',
     {
       title: 'Accept Offer',

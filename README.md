@@ -194,6 +194,7 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_remove_from_market` | Delist a player |
 | `kickbase_list_player_offers` | Open offers + market status for a single player (see notes) |
 | `kickbase_place_offer` | Bid on a player |
+| `kickbase_withdraw_offer` | Cancel your own outgoing bid |
 | `kickbase_accept_offer` | Accept an incoming offer |
 | `kickbase_decline_offer` | Decline an incoming offer |
 | `kickbase_get_league_player` | Player details (league ctx) |
@@ -259,7 +260,15 @@ rather than open bids.
 
 **`offerId` is the bidder's user ID.** In observed responses, the `uoid` of an
 offer is identical to the bidding user's ID (`u`). Pass that value as `offerId`
-to `kickbase_accept_offer` / `kickbase_decline_offer`.
+to `kickbase_accept_offer` / `kickbase_decline_offer` — and, for your own
+outgoing bid, to `kickbase_withdraw_offer` (that's just your own user ID, see
+`kickbase_get_profile`).
+
+**Withdrawing your own bid is a different endpoint from declining one.**
+`kickbase_decline_offer` is for the *seller* rejecting someone else's bid on
+their listing; there's a separate `DELETE .../market/{playerId}/offers/{offerId}`
+endpoint for the *bidder* to cancel their own outgoing offer, exposed as
+`kickbase_withdraw_offer`.
 
 **`kickbase_get_market` already includes offers inline.** Each market entry
 carries `ofc` (offer count) and, when bids exist, the full `ofs[]` array —
