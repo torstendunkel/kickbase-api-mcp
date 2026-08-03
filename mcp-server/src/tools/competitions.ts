@@ -2,7 +2,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { apiGet } from '../client.js';
 import { registerApiTool } from '../format.js';
-import { competitionId, paginationMax, paginationStart, playerId } from '../schemas.js';
+import { competitionId, playerId } from '../schemas.js';
 
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true };
 
@@ -55,12 +55,24 @@ export function registerCompetitionTools(server: McpServer): void {
     'kickbase_get_competition_players',
     {
       title: 'Get Competition Players',
-      description: 'Get all players in a competition, optionally paginated.',
-      inputSchema: { competitionId, start: paginationStart, max: paginationMax },
+      description:
+        'Get the top players in a competition by points, optionally filtered to a single position. ' +
+        "This is a top-25 leaderboard, not the full roster — the API hard-caps results at 25 and " +
+        'always sorts by points descending; there is no working pagination for this endpoint. ' +
+        'Filtering by position returns every player at that position if there are 25 or fewer ' +
+        "(e.g. all goalkeepers), otherwise still just the top 25. Use kickbase_search_players " +
+        'instead if you need a specific player who might not be a top performer.',
+      inputSchema: {
+        competitionId,
+        position: z
+          .enum(['1', '2', '3', '4'])
+          .optional()
+          .describe('Filter by position: 1=goalkeeper, 2=defender, 3=midfielder, 4=forward. Omit for all positions.'),
+      },
       annotations: READ_ONLY,
     },
-    ({ competitionId, start, max }) =>
-      apiGet(`/v4/competitions/${competitionId}/players`, { start, max })
+    ({ competitionId, position }) =>
+      apiGet(`/v4/competitions/${competitionId}/players`, { position })
   );
 
   registerApiTool(

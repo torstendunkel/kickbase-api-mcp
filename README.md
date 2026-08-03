@@ -209,7 +209,7 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_get_manager_performance` | Manager point history |
 | `kickbase_list_competitions` | Available competitions |
 | `kickbase_search_players` | Search players by name |
-| `kickbase_get_competition_players` | All players in a competition |
+| `kickbase_get_competition_players` | Top-25 competition players by points, optionally filtered by position |
 | `kickbase_get_competition_player` | Single player details |
 | `kickbase_get_competition_table` | Football league table |
 | `kickbase_get_matchdays` | Matchday schedule (supports `day` filter, see notes) |
@@ -280,6 +280,15 @@ including `unm` (bidder name), which the single-player endpoint omits. Prefer
 `kickbase_get_market` when scanning the whole market; use
 `kickbase_list_player_offers` for a targeted single-player check or for a player
 who is not currently listed.
+
+**`kickbase_get_competition_players` is a top-25 leaderboard, not a paginated
+roster.** Confirmed live: the underlying endpoint hard-caps results at 25 and
+always sorts by points descending — `start`/`max` (which an earlier version of
+this tool exposed) are silently ignored no matter what you pass. `position` is
+the only filter that actually does anything: it still caps at 25 for outfield
+positions, but returns every player at that position if there are 25 or fewer
+(e.g. all ~15 goalkeepers in a league). For a specific player who might not be
+a top performer, use `kickbase_search_players` instead.
 
 ---
 
