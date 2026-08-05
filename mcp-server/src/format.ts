@@ -29,6 +29,25 @@ export function toError(err: unknown): CallToolResult {
 }
 
 /**
+ * Fires one request per ID in parallel and collects the outcomes. A failure
+ * on one ID (bad/stale ID, 404, ...) is reported inline as `error` on that
+ * entry instead of rejecting the whole batch.
+ */
+export async function bulkFetch<T>(
+  ids: readonly string[],
+  fn: (id: string) => Promise<T>
+): Promise<{ results: Array<{ playerId: string; data: T } | { playerId: string; error: string }> }> {
+  const settled = await Promise.allSettled(ids.map(fn));
+  return {
+    results: settled.map((outcome, i) =>
+      outcome.status === 'fulfilled'
+        ? { playerId: ids[i], data: outcome.value }
+        : { playerId: ids[i], error: outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason) }
+    ),
+  };
+}
+
+/**
  * Registers a tool that calls the Kickbase API and formats the result,
  * centralizing error handling and response-size truncation so individual
  * tool definitions only need to describe their schema and API call.

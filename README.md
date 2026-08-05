@@ -201,6 +201,7 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_get_player_market_value` | Market value history |
 | `kickbase_get_market_value_bulk` | Market value history for multiple players in parallel |
 | `kickbase_get_player_performance` | Player match points |
+| `kickbase_get_player_performance_bulk` | Player match points for multiple players in parallel (slimmed) |
 | `kickbase_get_player_transfer_history` | Player transfer log |
 | `kickbase_get_scouted_players` | Your watchlist of scouted players |
 | `kickbase_add_scouted_player` | Add a player to your watchlist |
@@ -290,6 +291,24 @@ the only filter that actually does anything: it still caps at 25 for outfield
 positions, but returns every player at that position if there are 25 or fewer
 (e.g. all ~15 goalkeepers in a league). For a specific player who might not be
 a top performer, use `kickbase_search_players` instead.
+
+**Market-value `timeframe` is broken upstream — Kickbase only honors `365`.**
+Confirmed live: passing `7`, `30`, `90`, or in fact any value other than the
+literal `365` to `/marketValue/{timeframe}` returns an empty `it[]`, no error.
+`kickbase_get_player_market_value` / `kickbase_get_market_value_bulk` always
+fetch the full 365-day (one-entry-per-day) history and slice to the requested
+window server-side, so the `timeframe` param works as documented despite the
+upstream bug.
+
+**Player performance history can be huge — bulk and non-bulk trim it differently.**
+A veteran player's full `/performance` response goes back to 2013 and can run
+~55 KB, well over `CHARACTER_LIMIT` on its own. `kickbase_get_player_performance`
+defaults to the current season only (`seasons` param for more).
+`kickbase_get_player_performance_bulk` additionally slims each matchday entry
+down to `day`/`p`/`mp`/`st` (drops team IDs, goals, timestamps, images) — a full
+squad plus transfer candidates would otherwise blow past the size limit even
+with just the current season. Use the non-bulk tool when you need the full
+per-matchday shape for one player.
 
 ---
 
