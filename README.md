@@ -141,7 +141,7 @@ claude mcp add kickbase -e KICKBASE_TOKEN=eyJhbGci... -- node /absolute/path/to/
 |---|---|---|
 | `KICKBASE_EMAIL` / `KICKBASE_PASSWORD` | — | Credentials for automatic login |
 | `KICKBASE_TOKEN` | — | Pre-obtained bearer token; skips the login flow |
-| `KICKBASE_CACHE_TTL` | `300` | Cache lifetime in seconds for slow-moving reference data. `0` disables caching |
+| `KICKBASE_CACHE_TTL` | `3600` | Cache lifetime in seconds for slow-moving reference data. `0` disables caching |
 | `KICKBASE_KEEP_IMAGES` | unset | Set to `1` to keep image-path fields in responses (see below) |
 
 #### Token & request efficiency
@@ -199,6 +199,7 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_decline_offer` | Decline an incoming offer |
 | `kickbase_get_league_player` | Player details (league ctx) |
 | `kickbase_get_player_market_value` | Market value history |
+| `kickbase_get_market_value_bulk` | Market value history for multiple players in parallel |
 | `kickbase_get_player_performance` | Player match points |
 | `kickbase_get_player_transfer_history` | Player transfer log |
 | `kickbase_get_scouted_players` | Your watchlist of scouted players |
@@ -244,14 +245,12 @@ at pagination or filter parameters.
 
 #### Notes & API quirks
 
-**Offers are only partially visible.** Kickbase removed the ability to see other
-managers' bids on players you don't own. `kickbase_list_player_offers` therefore
-returns a populated `ofs[]` array only for:
-
-- your own bids on someone else's listing, and
-- bids other managers placed on *your* listed player.
-
-An empty `ofs[]` is the normal case, not an error.
+**Offers are only partially visible.** Kickbase removed the ability to see
+*competing* bids on a player listed by another manager — for such a listing,
+`ofs[]` contains at most your own bid, never anyone else's, even if you've been
+outbid. Full visibility into `ofs[]` (all incoming bids from other managers)
+only applies to players *you* have listed. An empty or single-entry `ofs[]` on
+someone else's listing is the normal case, not an error.
 
 **There is no GET endpoint for market offers.**
 `/v4/leagues/{id}/market/{playerId}/offers` exists as `POST` only (placing a
@@ -275,11 +274,13 @@ endpoint for the *bidder* to cancel their own outgoing offer, exposed as
 `kickbase_withdraw_offer`.
 
 **`kickbase_get_market` already includes offers inline.** Each market entry
-carries `ofc` (offer count) and, when bids exist, the full `ofs[]` array —
-including `unm` (bidder name), which the single-player endpoint omits. Prefer
-`kickbase_get_market` when scanning the whole market; use
-`kickbase_list_player_offers` for a targeted single-player check or for a player
-who is not currently listed.
+carries `ofc` (offer count) and, when bids exist, an `ofs[]` array — including
+`unm` (bidder name), which the single-player endpoint omits. The same visibility
+rule applies here: on other managers' listings `ofs[]` still only ever shows
+your own bid, not competing ones — `ofc` may report a higher count than `ofs[]`
+actually contains entries for. Prefer `kickbase_get_market` when scanning the
+whole market; use `kickbase_list_player_offers` for a targeted single-player
+check or for a player who is not currently listed.
 
 **`kickbase_get_competition_players` is a top-25 leaderboard, not a paginated
 roster.** Confirmed live: the underlying endpoint hard-caps results at 25 and

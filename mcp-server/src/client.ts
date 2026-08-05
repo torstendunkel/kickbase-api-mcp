@@ -41,9 +41,10 @@ function slim(value: unknown): unknown {
 // ---------------------------------------------------------------------------
 // GET cache
 //
-// Only slow-moving reference data is cached — never budgets, market, lineup or
-// anything else a mutation can invalidate mid-session. Any POST/DELETE flushes
-// the cache, so a write is always followed by fresh reads.
+// Only slow-moving/historical data is cached — never budgets, market, lineup,
+// or the live per-league player endpoint (carries live status like iotm/iposl),
+// or anything else a mutation can invalidate mid-session. Any POST/DELETE
+// flushes the cache, so a write is always followed by fresh reads.
 // KICKBASE_CACHE_TTL (seconds, 0 disables caching) overrides the default.
 // ---------------------------------------------------------------------------
 
@@ -52,9 +53,10 @@ const CACHEABLE = [
   /^\/v4\/competitions\/[^/]+\/(matchdays|table)$/,
   /^\/v4\/competitions\/[^/]+\/players/,
   /^\/v4\/base\/stage$/,
+  /^\/v4\/leagues\/[^/]+\/players\/[^/]+\/(performance|transferHistory|marketValue)/,
 ];
 
-const DEFAULT_TTL_MS = 5 * 60 * 1000;
+const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
 function cacheTtlMs(): number {
   const raw = process.env.KICKBASE_CACHE_TTL;
@@ -73,6 +75,33 @@ export function isCacheable(path: string): boolean {
 
 export function flushCache(): void {
   cache.clear();
+}
+
+// ---------------------------------------------------------------------------
+// Daily market-value recalculation reset
+//
+// Kickbase recalculates player market values once a day in a ~22:00-22:10
+// local-time window. With an hour-long TTL, cached mv/marketValue data could
+// otherwise survive past the recalculation and be served stale. The first GET
+// seen after 22:10 each day force-flushes the whole cache once; subsequent
+// GETs that day behave normally.
+// ---------------------------------------------------------------------------
+
+const RECALC_HOUR = 22;
+const RECALC_MINUTE = 10;
+let lastRecalcFlushDate: string | null = null;
+
+function flushIfPastDailyRecalc(): void {
+  const now = new Date();
+  const pastWindow =
+    now.getHours() > RECALC_HOUR || (now.getHours() === RECALC_HOUR && now.getMinutes() >= RECALC_MINUTE);
+  if (!pastWindow) return;
+
+  const today = now.toDateString();
+  if (lastRecalcFlushDate === today) return;
+
+  flushCache();
+  lastRecalcFlushDate = today;
 }
 
 async function parseBody(res: Response): Promise<unknown> {
@@ -117,6 +146,7 @@ export async function apiGet(
   const cacheable = isCacheable(path);
 
   if (cacheable) {
+    flushIfPastDailyRecalc();
     const hit = cache.get(key);
     if (hit && Date.now() < hit.expiresAt) return hit.value;
   }

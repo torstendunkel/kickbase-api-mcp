@@ -53,9 +53,10 @@ export function registerMarketTools(server: McpServer): void {
         "Returns 'ofs' (array of open bids, each with bidder 'u'/'uoid', name 'unm', and bid amount 'uop'), " +
         "'iotm' (player is on the transfer market), 'iposl' (player is on your sell list), " +
         "'mv' (market value), and 'prc' (listed price). " +
-        "IMPORTANT: Kickbase removed visibility into other managers' incoming bids on players you don't own. " +
-        "'ofs' is therefore populated mainly for (a) your own bids on someone else's listing, or " +
-        "(b) bids others have placed on YOUR listed player. It will usually be empty otherwise — that is expected, not an error.",
+        "IMPORTANT: for a player listed by another manager, Kickbase never exposes competing bids — " +
+        "'ofs' will contain at most YOUR OWN bid on that listing, never other managers' bids, even if " +
+        "they outbid you. Only on a player YOU have listed does 'ofs' show the full set of incoming bids " +
+        "from other managers. An empty or single-entry 'ofs' on someone else's listing is expected, not an error.",
       inputSchema: { leagueId, playerId },
       annotations: READ_ONLY,
     },
