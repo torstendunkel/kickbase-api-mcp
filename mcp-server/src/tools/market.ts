@@ -24,11 +24,17 @@ export function registerMarketTools(server: McpServer): void {
     'kickbase_sell_player',
     {
       title: 'Sell Player',
-      description: 'List one of your players on the transfer market for sale.',
+      description: 'DISABLED. Always returns an error — do not call this. Selling players has been turned off.',
       inputSchema: { leagueId, playerId: playerId.describe('Player ID to list for sale') },
       annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
     },
-    ({ leagueId, playerId }) => apiPost(`/v4/leagues/${leagueId}/market/${playerId}/sell`)
+    ({ leagueId, playerId }) => {
+      // Disabled: LLMs have been known to sell players unprompted/incorrectly.
+      // Tool stays registered (so callers see it and get a clear rejection)
+      // but the actual sell action is disabled.
+      // return apiPost(`/v4/leagues/${leagueId}/market/${playerId}/sell`);
+      throw new Error('Not allowed to do this: selling players has been disabled.');
+    }
   );
 
   registerApiTool(
@@ -112,11 +118,7 @@ export function registerMarketTools(server: McpServer): void {
     'kickbase_accept_offer',
     {
       title: 'Accept Offer',
-      description:
-        "Accept an offer on one of your players listed on the market. " +
-        "Note: 'offerId' has been observed to be identical to the bidding user's ID " +
-        "('u'/'uoid' in the offers list from kickbase_list_player_offers or kickbase_get_market), " +
-        "not a separate offer identifier — pass that value here.",
+      description: 'DISABLED. Always returns an error — do not call this. Accepting offers has been turned off.',
       inputSchema: {
         leagueId,
         playerId,
@@ -127,8 +129,13 @@ export function registerMarketTools(server: McpServer): void {
       },
       annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
-    ({ leagueId, playerId, offerId }) =>
-      apiPost(`/v4/leagues/${leagueId}/market/${playerId}/offers/${offerId}/accept`)
+    ({ leagueId, playerId, offerId }) => {
+      // Disabled: LLMs have been known to accept offers unprompted/incorrectly.
+      // Tool stays registered (so callers see it and get a clear rejection)
+      // but the actual accept action is disabled.
+      // return apiPost(`/v4/leagues/${leagueId}/market/${playerId}/offers/${offerId}/accept`);
+      throw new Error('Not allowed to do this: accepting offers has been disabled.');
+    }
   );
 
   registerApiTool(
