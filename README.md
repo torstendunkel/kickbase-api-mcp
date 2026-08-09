@@ -190,12 +190,12 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | `kickbase_get_lineup_selection` | Available players for lineup |
 | `kickbase_fill_lineup` | Set formation & lineup |
 | `kickbase_get_market` | Transfer market (incl. inline `ofs[]` offers, see notes) |
-| `kickbase_sell_player` | List a player for sale |
+| `kickbase_sell_player` | Disabled — always errors (see notes) |
 | `kickbase_remove_from_market` | Delist a player |
 | `kickbase_list_player_offers` | Open offers + market status for a single player (see notes) |
 | `kickbase_place_offer` | Bid on a player |
 | `kickbase_withdraw_offer` | Cancel your own outgoing bid |
-| `kickbase_accept_offer` | Accept an incoming offer |
+| `kickbase_accept_offer` | Disabled — always errors (see notes) |
 | `kickbase_decline_offer` | Decline an incoming offer |
 | `kickbase_get_league_player` | Player details (league ctx) |
 | `kickbase_get_player_market_value` | Market value history |
@@ -252,6 +252,19 @@ at pagination or filter parameters.
 outbid. Full visibility into `ofs[]` (all incoming bids from other managers)
 only applies to players *you* have listed. An empty or single-entry `ofs[]` on
 someone else's listing is the normal case, not an error.
+
+**`kickbase_sell_player` and `kickbase_accept_offer` are disabled.** Both
+tools stay registered (so they're visible and their schemas are stable) but
+their handlers now throw instead of calling the Kickbase API. This is
+deliberate: `POST /v4/leagues/{id}/market/{playerId}/sell` is documented (and
+was originally assumed) to just *list* a player on the market, but in
+practice it performs an **instant sale to the Kickbase system** — the player
+leaves your squad immediately, with no window for other managers to bid.
+LLMs calling this tool have caused unintended instant sales. There is
+currently no known API endpoint for creating a real, waiting-for-bids market
+listing; that can only be done through the Kickbase app itself. Re-enable by
+uncommenting the `apiPost(...)` calls in `mcp-server/src/tools/market.ts` if
+you're confident in the caller.
 
 **There is no GET endpoint for market offers.**
 `/v4/leagues/{id}/market/{playerId}/offers` exists as `POST` only (placing a
