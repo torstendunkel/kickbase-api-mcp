@@ -16,4 +16,19 @@ export function registerUserTools(server: McpServer): void {
     },
     () => apiGet('/v4/user/me')
   );
+
+  registerApiTool(
+    server,
+    'kickbase_collect_bonus',
+    {
+      title: 'Collect Daily Bonus',
+      description:
+        'Claim the authenticated user\'s pending daily bonus reward. Despite being a GET ' +
+        'endpoint, this mutates state (marks the bonus as collected) — calling it again ' +
+        'after collection is expected to error or no-op if no bonus is currently pending.',
+      inputSchema: {},
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
+    },
+    () => apiGet('/v4/bonus/collect')
+  );
 }

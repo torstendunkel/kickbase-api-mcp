@@ -178,6 +178,7 @@ single matchday cuts it from ~37 KB to ~1.4 KB (**−96%**).
 | Tool | Description |
 |---|---|
 | `kickbase_get_profile` | Your account profile |
+| `kickbase_collect_bonus` | Claim your pending daily bonus |
 | `kickbase_list_leagues` | All your leagues |
 | `kickbase_get_league_overview` | League details |
 | `kickbase_get_league_ranking` | Manager standings |
